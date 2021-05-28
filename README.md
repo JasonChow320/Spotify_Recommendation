@@ -1,0 +1,3 @@
+This is a project that was started for my intro to software engineering class. The original project is in this repo for you to check out: https://github.com/Sarah-Shahinpour/CS411
+
+My idea was to improve the project since we didn't really get to finish it and some of the code is hardcoded. My goal is to not only integrate my original ideas into the project, but also to fix some of the problems we faced. I'll keep an update log and try to implement all the ideas I originally had.
