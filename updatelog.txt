@@ -1,2 +1,3 @@
 5/28: Created github repo and pushed the original files that I have on my computer to it, this version contains the code that I last worked on before passing it to my groupmates to finish on the front-end.
 
+6/3: Installed the latest updates for the node.js dependencies used in the project. NOTE, I realized that request is a depreciate dependency and it is definitely something I will work on and refactor to using some other https call methods, however, my main goal for now is to add the additional features to the project. Which will include using personal data to automatically make a playlist, and adding a custom option for those who wants to customize a playlist.

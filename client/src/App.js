@@ -2,7 +2,6 @@ import './App.css';
 import React, {Component} from 'react';
 import View from './View';
 import Cookies from 'universal-cookie';
-import { cookie } from 'request';
 
 class App extends Component {
   constructor(props) {
@@ -322,7 +321,7 @@ getSpotifyFeaturedPlaylist(){
       if(!loggedIn){
         if(makeAcc){
             return (
-                <>
+                <div>
                 <form onSubmit={this.AccSubmit}>
                     <label>
                       Username:
@@ -339,10 +338,11 @@ getSpotifyFeaturedPlaylist(){
                     <input type="submit" value="Create" />
                   </form>
                   <button onClick={this.toggleAccount}>Login</button>
-                </>);
+                  </div>
+                  );
           }else{
             return (
-                <>
+                <div>
                 <form onSubmit={this.loginSubmit}>
                     <label>
                       Username:
@@ -357,25 +357,23 @@ getSpotifyFeaturedPlaylist(){
                   <button onClick={this.toggleAccount}>Sign Up</button>
                   <br></br>
                   <a className="App-link" href={link}>Log In To Spotify</a>
-                </>);
+                </div>);
           }
       }else{
           if(loginSpotify){
             return (
-                <>
+                <div>
                 <p>LOL THERE's no logging out :D</p>
-                </>);
+                </div>);
           }else{
             return (
-                <>
+                <div>
                 <p>LOL THERE's no logging out :D</p>
                 <br></br>
                 <a className="App-link" href={link}>Log In To Spotify</a>
-                </>);
+                </div>);
           }
-        
       }
-    
   }
 
   render() {
@@ -383,7 +381,7 @@ getSpotifyFeaturedPlaylist(){
       const login = this.loginPanel(loggedIn, makeAcc, loginSpotify, link);
       
     return (
-        <>
+        <div>
       <div className="nav">
           <div id="navLeft">
             <p>{session || 'none'}</p>
@@ -417,12 +415,9 @@ getSpotifyFeaturedPlaylist(){
         </div>
       </div>
       <div id="display">
-          <h1>{this.state.email || 'none'}</h1>
-          <h1>{this.state.username || 'nothing'}</h1>
-          <h1>{this.state.password || 'nothing'}</h1>
         <View arr={displayArray} type={type}></View>
       </div>
-      </>
+      </div>
     );
   }
 }

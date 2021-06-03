@@ -10,36 +10,37 @@ class View extends React.Component {
                     <p>
                         <h1>Albums</h1>
                       {this.props.arr.map(item => (
-                          <>
-                          <h1>{item[0]}</h1>
-                          <h1>{item[1]}</h1>
-                        <div><img src={item[2]} alt=""></img></div>
-                        </>
+                        <div>
+                            <h1>{item[0]}</h1>
+                            <h1>{item[1]}</h1>
+                            <img src={item[2]} alt=""></img>
+                        </div>
                       ))}
                     </p>
                   );
             case 'Categories':
                 return(
-                    <>
+                    <div>
                     <p>
                         <h1>Categories</h1>
                       {this.props.arr.map(item => (
-                          <>
+                          <div>
                           <h1>{item[0]}</h1>
                           <h1>{item[1]}</h1>
-                        <div><img src={item[2]} alt=""></img></div>
-                        </>
+                          <img src={item[2]} alt=""></img>
+                      </div>
                       ))}
                     </p>
-                    </>
+                    </div>
                 );
             case 'Genre':
                 return(
                     <p>
                         {this.props.arr.map(item => (
-                        <>
-                        <h1>{item}</h1>
-                      </>
+                        <div>
+                            <h1>{item}</h1>
+                            </div>
+                        
                     ))}
                     </p>
                     
