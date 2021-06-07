@@ -22,7 +22,8 @@ class App extends Component {
         link : 'http://localhost:3001/spotifyapi/login',
         makeAcc : false,
         loggedIn : false,
-        loginSpotify : false
+        loginSpotify : false,
+        deleteAcc : false
     };   
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -40,6 +41,9 @@ class App extends Component {
     this.loginPanel = this.loginPanel.bind(this);
     this.AccSubmit = this.AccSubmit.bind(this);
     this.toggleAccount = this.toggleAccount.bind(this);
+    this.signout = this.signout.bind(this);
+    this.toggleDelete = this.toggleDelete.bind(this);
+    this.deleteAcc = this.deleteAcc.bind(this);
   }
 
   handleChange({target}) {
@@ -239,10 +243,18 @@ getSpotifyFeaturedPlaylist(){
             });
             window.history.pushState({}, null, "/");
         }else if (a_token.slice(0, 14) === "?loginSession=") {
-            this.setState({session: a_token.slice(14), 
+            this.setState({
+                session: a_token.slice(14), 
                 loggedIn : true, 
-                link : 'http://localhost:3001/spotifyapi/loginWithAcc/'+a_token.slice(14),
+                link : 'http://localhost:3001/spotifyapi/loginWithAcc/'+a_token.slice(15),
                 loginSpotify : true,
+            });
+            window.history.pushState({}, null, "/");
+        }else if(a_token.slice(0, 7) === "?error="){
+            alert(a_token.slice(7));
+            this.setState({
+                loggedIn : false,
+                loginSpotify : false,
             });
             window.history.pushState({}, null, "/");
         }
@@ -269,15 +281,28 @@ getSpotifyFeaturedPlaylist(){
       fetch("/login/userlogin", requestOptions)
       .then(response => response.json())
       .then(result =>{
-          if(result.sessionId!=null){
-            this.setState({
-                session : result.sessionId,
-                loggedIn : true,
-                loginSpotify : false,
-                link : 'http://localhost:3001/spotifyapi/loginWithAcc/'+result.sessionId
-            });
-          }
-      });
+          if(result.error!== null){
+              alert(result.error);
+          }else{
+            if(result.sessionId!=null){
+                if(result.havespotify===false){
+                    this.setState({
+                        session : result.sessionId,
+                        loggedIn : true,
+                        loginSpotify : false,
+                        link : 'http://localhost:3001/spotifyapi/loginWithAcc/'+result.sessionId
+                    });
+                }else{
+                    this.setState({
+                        session : result.sessionId,
+                        loggedIn : true,
+                        loginSpotify : true,
+                        link : 'http://localhost:3001/spotifyapi/loginWithAcc/'+result.sessionId
+                    });
+                }
+            }
+            }
+        });
   }
 
   AccSubmit(event){
@@ -305,9 +330,16 @@ getSpotifyFeaturedPlaylist(){
             this.setState({
                 loggedIn : true,
                 session : result.sessionId,
+                loginSpotify : false,
                 link : 'http://localhost:3001/spotifyapi/loginWithAcc/'+result.sessionId
             });
           }
+          if(result.error!=null){
+            this.setState({
+                message : result.error
+            });
+          }
+           
       });
   }
 
@@ -317,7 +349,71 @@ getSpotifyFeaturedPlaylist(){
           makeAcc : !makeAcc
       });
   }
-  loginPanel(loggedIn, makeAcc, loginSpotify, link){
+
+  toggleDelete(){
+      const {deleteAcc} = this.state;
+      this.setState({
+          deleteAcc : !deleteAcc
+      })
+  }
+
+  deleteAcc(){
+      const {username} = this.state;
+      if(username !== ''){
+        var requestOptions = {
+            method: 'delete',
+            redirect: 'follow'
+          };
+          
+          fetch("/login/user/" + username, requestOptions)
+          .then(response => response.json())
+          .then(result =>{
+              if(result.error!=null){
+                alert(result.error);
+              }else{
+                alert(result.message);
+                this.setState({
+                    username : '',
+                    password : '',
+                    session : 'none',
+                    deleteAcc : false,
+                    makeAcc : false
+                });
+              }
+          });
+      }
+  }
+  
+  signout(){
+      this.setState({
+          loggedIn : false,
+          loginSpotify : false,
+          session : 'new',
+          username : '',
+          password : '',
+          email : '',
+          makeAcc : false
+      });
+  }
+
+  /* from https://stackoverflow.com/questions/22639534/pass-props-to-parent-component-in-react-js */
+  handleChildClick(event) {
+    // You can access the prop you pass to the children 
+    // because you already have it! 
+    // Here you have it in state but it could also be
+    //  in props, coming from another parent.
+    alert("The Child button text is: ");
+    // You can also access the target of the click here 
+    // if you want to do some magic stuff
+    alert("The Child HTML is: " + event.target.outerHTML);
+ }
+
+
+  /*loggedIn - boolean if the user has logged in using our software account
+    makeAcc - boolean if the user is in the process of making an account for our software
+    loginSpotify - boolean if the user has logged into Spotify
+    link - a string containing the link to login to Spotify  */
+  loginPanel(loggedIn, makeAcc, loginSpotify, link, message, deleteAcc, username){
       if(!loggedIn){
         if(makeAcc){
             return (
@@ -337,7 +433,8 @@ getSpotifyFeaturedPlaylist(){
                     </label><br></br>
                     <input type="submit" value="Create" />
                   </form>
-                  <button onClick={this.toggleAccount}>Login</button>
+                  <button onClick={this.toggleAccount}>Return to Login</button>
+                  {message || 'none'}
                   </div>
                   );
           }else{
@@ -356,34 +453,68 @@ getSpotifyFeaturedPlaylist(){
                   </form>
                   <button onClick={this.toggleAccount}>Sign Up</button>
                   <br></br>
-                  <a className="App-link" href={link}>Log In To Spotify</a>
-                </div>);
+                  <a className="App-link" href={link}>Log In To Spotify without an Account</a>
+                </div>
+                );
           }
       }else{
           if(loginSpotify){
-            return (
-                <div>
-                <p>LOL THERE's no logging out :D</p>
-                </div>);
+              if(deleteAcc){
+                return (
+                    <div>
+                        <button onClick={this.signout}>Sign Out</button>
+                        <h1>YOU SURE?</h1>
+                        <p>{this.username}</p>
+                        <button onClick={this.deleteAcc}>Yes</button>
+                        <button onClick={this.toggleDelete}>No</button>
+                    </div>
+                    );
+              }else{
+                return (
+                    <div>
+                        <button onClick={this.signout}>Sign Out</button>
+                        <button onClick={this.toggleDelete}>Delete Account</button>
+                    </div>
+                    );
+              }
           }else{
-            return (
-                <div>
-                <p>LOL THERE's no logging out :D</p>
-                <br></br>
-                <a className="App-link" href={link}>Log In To Spotify</a>
-                </div>);
-          }
+              if(deleteAcc){
+                return (
+                    <div>
+                    <button onClick={this.signout}>Sign Out</button>
+                    <h1>YOU SURE?</h1>
+                    <button onClick={this.deleteAcc}>Yes</button>
+                    <button onClick={this.toggleDelete}>No</button>
+                    <a className="App-link" href={link}>Log In To Spotify</a>
+                    </div>);
+              }else{
+                return (
+                    <div>
+                    <button onClick={this.signout}>Sign Out</button>
+                    <button onClick={this.toggleDelete}>Delete Account</button>
+                    <a className="App-link" href={link}>Log In To Spotify</a>
+                    </div>);
+                }
+              }
       }
   }
 
   render() {
-      const {displayArray, type, session, makeAcc, link, loggedIn, loginSpotify} = this.state;
-      const login = this.loginPanel(loggedIn, makeAcc, loginSpotify, link);
-      
+    const {displayArray, type, session, makeAcc, link, loggedIn, loginSpotify, message, deleteAcc, username} = this.state;
+    const login = this.loginPanel(loggedIn, makeAcc, loginSpotify, link, message, deleteAcc, username);
+
+    if (session === "none") {
+        return (
+          <div id="intro">
+            {login}
+          </div>
+        )
+    }
     return (
         <div>
       <div className="nav">
           <div id="navLeft">
+
             <p>{session || 'none'}</p>
             <form onSubmit={this.handleSubmit}>
             <label>
@@ -400,6 +531,7 @@ getSpotifyFeaturedPlaylist(){
             </label>
             <input type="submit" value="Submit" />
             </form>
+
             <button onClick={this.getPlaylist}>Get a Playlist</button>
             <button onClick={this.createPlaylist}>Create a Playlist</button>
             <button onClick={this.addItems}>Add Items</button>
@@ -410,12 +542,13 @@ getSpotifyFeaturedPlaylist(){
                 <button onClick={this.getSpotifyFeaturedPlaylist}>FeaturedPlaylist</button>  
             </div>
           </div>
+
         <div id="login">
          {login}
         </div>
       </div>
       <div id="display">
-        <View arr={displayArray} type={type}></View>
+        <View arr={displayArray} type={type} onClick={this.handleChildClick}></View>
       </div>
       </div>
     );

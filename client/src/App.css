@@ -2,13 +2,22 @@
   background-color: rgb(23, 153, 23);
   height: 20vh;
   width: 100vw;
+  top: 0;
+}
+
+#login {
+    margin: none;
+    width: 30vw;
+    float: right;
+    height: 100%;
 }
 
 #navLeft {
-    width: 70vw;
-    height:100%;
+    width: 68vw;
+    height: 100%;
     float: left;
-}
+    margin-left: 1%;
+  }
 
 #login p {
     text-decoration: none;

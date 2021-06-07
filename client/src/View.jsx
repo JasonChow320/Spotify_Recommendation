@@ -3,6 +3,10 @@ import React from 'react';
 
 /* everything that is rendered onto the screen is below */
 class View extends React.Component {
+    constructor(props) {
+        super(props);
+        this.i = 0;
+    }
     render() {
         switch (this.props.type){
             case 'Albums':
@@ -14,6 +18,7 @@ class View extends React.Component {
                             <h1>{item[0]}</h1>
                             <h1>{item[1]}</h1>
                             <img src={item[2]} alt=""></img>
+                            <button onClick={this.props.onClick}>{this.i++}Hi</button>
                         </div>
                       ))}
                     </p>

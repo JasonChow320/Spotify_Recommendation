@@ -2,12 +2,13 @@
 https://www.webucator.com/how-to/how-send-receive-json-data-from-the-server.cfm */
 
 /* taken from Spotify Web API template and integrated into our routes for /spotifyapi
-   WIll have all spotify related api calls, server to server authenication will to be checked and refreshed if needed
-   on every request recieved. Every api call will require a session id to response, either in the form of a 
-   client session id (without our app account) or user-login session id (with our app account). Client session id is 
-   acquired as soon as a connection is made */
-   const express = require('express'); // Express web server framework
-   const request = require('request'); // "Request" library
+   Will have all spotify related api calls, server to server authenication will to be checked and refreshed if needed
+   on every request received. Every api call will require a valid session id to obtain the correct response, either in the form of a 
+   client session id "sessionId" (without our app account) or user-login session id "loginSession" (with our app account). 
+   sessionId is acquired after Spotify login while loginSession is acquired after account login */
+
+   const express = require('express'); 
+   const request = require('request'); 
    const querystring = require('querystring');
    const router = express.Router();
    
@@ -20,7 +21,7 @@ https://www.webucator.com/how-to/how-send-receive-json-data-from-the-server.cfm 
    /* Use redis for cache */
    const redis= require('./redis');
    
-   // uses sessionId to directly access user schema when adding/using spotify user refresh token 
+   // uses sessionId to directly access user schema when adding/using Spotify user refresh token 
    const User = require('../models/user');
    
    var stateKey = 'spotify_auth_state';
@@ -41,15 +42,14 @@ https://www.webucator.com/how-to/how-send-receive-json-data-from-the-server.cfm 
        return text;
    };
    
-   /* login to spotify without account */
+   /* login to Spotify without account */
    router.get('/login/', function(req, res) {
        var state = generateRandomString(16);
        res.cookie(stateKey, state);
-       /* id is used to identify users not logged in to our app in cache */
        var id = generateRandomString(32);
        res.cookie(sessionId, id);
    
-       /* requests authorization */
+       /* requests authorization from user */
        var scope = 'user-read-private user-read-email playlist-modify-public';
        res.redirect('https://accounts.spotify.com/authorize?' +
        querystring.stringify({
@@ -127,17 +127,15 @@ https://www.webucator.com/how-to/how-send-receive-json-data-from-the-server.cfm 
    
    /* login to spotify when login to application */
    router.get('/loginWithAcc/:id', function(req, res) {
-       //set a random string as state, this helps prevent Cross-site scripting attacks
-       //CAN BE MODIFIED MORE FOR OUR OWN SECURITY MEASURES
        var state = generateRandomString(16);
        res.cookie(stateKey, state);
    
-       /* we expect a valid login session id to map access token to */
+       /* we expect a valid login session id, will check in the callback function */
        var id = req.params.id;
        res.cookie(sessionId, id);
        res.cookie('haveAccount', true);
    
-       // your application requests authorization
+       /* requests authorization from user */
        var scope = 'user-read-private user-read-email playlist-modify-public';
        res.redirect('https://accounts.spotify.com/authorize?' +
        querystring.stringify({
@@ -157,16 +155,17 @@ https://www.webucator.com/how-to/how-send-receive-json-data-from-the-server.cfm 
        var storedId = req.cookies ? req.cookies[sessionId] : null;
        var haveAcc = req.cookies ? req.cookies['haveAccount'] : null;
    
+       /* callback from /loginWithAcc */
        var haveLogin;
        if(haveAcc != null){
            haveLogin = true;
            res.clearCookie('haveAccount');
        }
    
-       // use the authorication_code provided to us in response to obtain the user's access token and refresh token
+       /* use the authorication_code provided to us in response to obtain the user's access token and refresh token */
        if (state === null || state !== storedState) {
-           res.json({error: "INVALID statekey"});
-       } else {
+           res.redirect('http://localhost:3000?' + querystring.stringify({error : 'Invalid state on callback'}));
+        } else {
            res.clearCookie(stateKey);
            res.clearCookie(sessionId);
    
@@ -183,45 +182,44 @@ https://www.webucator.com/how-to/how-send-receive-json-data-from-the-server.cfm 
                json: true
            };
    
-           //make a request call
            request.post(authOptions, function(error, response, body) {
-               //callback from request call
+               /* callback from request call */
                if (!error && response.statusCode === 200) {
                    var access_token = body.access_token,
                        refresh_token = body.refresh_token;
    
                    redis.setex(storedId+':spotifyUserAccessToken', 3600, access_token);
+                   /* save refresh token to user data */
                    if(haveLogin){
-                       //save the refresh token
                        redis.get('UserSession:'+storedId, (err, data)=>{
                            if(err) {
                                console.log('Invalid user session id detected!');
-                               res.status(204).send({message : 'Error, invalid session'});
+                               res.redirect('http://localhost:3000?' + querystring.stringify({error : 'Invalid login session!'}));
                            }
                            if(data != null){
                                User.findOne({session : data}, function(error, user){
                                    if(error){
                                        console.log('unable to find user schema when checking refresh token for spotify');
                                        //401 Unauthorized or 403 : Forbidden
-                                       res.status(401).json({message : 'Unable to add spotify to account!'}); 
+                                       res.redirect('http://localhost:3000?' + querystring.stringify({error : 'Invalid login session!'}));
                                    }
                                    if(user != null){
                                        user.refreshtoken = refresh_token;
                                        user.save();
                                        res.redirect('http://localhost:3000?' + querystring.stringify({loginSession : storedId}));
                                    } else{
-                                       res.status(204).send({message : "error, "});
+                                       res.redirect('http://localhost:3000?' + querystring.stringify({error : 'Invalid login session!'}));
                                    }
                                });
                            } else{
-                               res.status(204).send({message : 'invalid sessionId'});
+                               res.redirect('http://localhost:3000?' + querystring.stringify({error : 'Invalid login session'}));
                            } 
                        });
                    }else{
                        res.redirect('http://localhost:3000?' + querystring.stringify({sessionId : storedId}));
                    }
                } else {
-                   res.json({error: 'invalid_token'});
+                   res.redirect('http://localhost:3000?' + querystring.stringify({error : 'Invalid response from Spotify!'}));
                }
            });
        }
